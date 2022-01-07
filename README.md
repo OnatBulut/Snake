@@ -7,6 +7,3 @@ How to play:
 - ESC to quit
 
 Collect * to increase your score and snake length. Fill the screen to win.
-
-Known bug:
-- Food appearing on snake's tail.

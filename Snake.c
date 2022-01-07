@@ -14,7 +14,8 @@
 #define EXIT 27
 #define PAUSE 112
 
-#define SIZE 10 // Map size in height and width, should be bigger than 5 (for your own good)
+#define SPEED 7 // Determines how fast the snake moves (steps per second)
+#define SIZE 10 // Map size in height and width, should be bigger than 5
 #define START_LENGTH 3 // Length of the snake at start, should be bigger than 1
 
 #define I_RED 0x000C // FOREGROUND_RED | FOREGROUND_INTENSITY
@@ -37,7 +38,7 @@ void gotoxy(int x, int y, char character)
     printf("%c", character);
 }
 
-// Set text or background color
+// Set text color
 void setColor(WORD color)
 {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
@@ -64,7 +65,7 @@ int main()
             food();
             tail();
             printMap();
-            Sleep(100);
+            Sleep(1000/SPEED);
         }
     }
 }
@@ -74,7 +75,7 @@ void preRun()
 {
     srand(time(NULL));
 
-    if (SIZE < 5)
+    if (SIZE <= 5)
     {
         puts("Map size should be bigger than 5!");
         exit(0);
@@ -108,7 +109,7 @@ void initialization()
     pCoordX = SIZE % 2 == 0 ? SIZE + 1: SIZE;
     pCoordY = SIZE / 2 + 2;
 
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < SIZE * SIZE; i++)
         for (size_t j = 0; j < 2; j++)
             tailCoords[i][j] = SIZE + 2;
 
@@ -195,12 +196,13 @@ void food()
 
         while (check == 0)
         {
+            check = 1;
             fCoordX = rand() % SIZE * 2 + 1;
             fCoordY = rand() % SIZE + 1;
 
             for (size_t i = 0; i < score; i++)
-                if (fCoordX != tailCoords[i][1] && fCoordY != tailCoords[i][0])
-                    check = 1;
+                if (fCoordX == tailCoords[i][1] && fCoordY == tailCoords[i][0])
+                    check = 0;
         }
         
         eaten = 0;
@@ -223,6 +225,7 @@ void tail()
 {
     gotoxy(tailCoords[0][1], tailCoords[0][0], ' ');
 
+    // Move tail coordinates to the previous array element on every move
     for (size_t i = 0; i < score; i++)
     {
         tailCoords[i][0] = tailCoords[i + 1][0];
@@ -232,6 +235,7 @@ void tail()
     tailCoords[score > 0 ? score - 1 : 0][0] = pCoordY;
     tailCoords[score > 0 ? score - 1 : 0][1] = pCoordX;
 
+    // Tail collision check
     for (size_t i = 0; i < score - 1; i++)
         if (pCoordX == tailCoords[i][1] && pCoordY == tailCoords[i][0] && !(tick < START_LENGTH))
         {
@@ -240,6 +244,7 @@ void tail()
             highestScore = score > highestScore ? score : highestScore;
         }
 
+    // Win status check
     if (score >= SIZE * SIZE)
     {
         win = 1;
@@ -277,7 +282,7 @@ void printMap()
     }
 
     gotoxy(SIZE * 2 + 4, 1, '\0'); puts("Press Spacebar to restart");
-    gotoxy(SIZE * 2 + 4, 2, '\0'); puts("Press ESC to quit");
+    gotoxy(SIZE * 2 + 4, 2, '\0'); puts("Press P to pause");
     gotoxy(SIZE * 2 + 4, 3, '\0'); puts("Arrow keys to move");
     gotoxy(SIZE * 2 + 4, 4, '\0'); printf("Length: %-5d Size: %dx%d\n", score, SIZE, SIZE);
     gotoxy(SIZE * 2 + 4, 5, '\0'); if (highestScore > START_LENGTH) printf("Highest Length: %-5d\n", highestScore);

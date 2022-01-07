@@ -59,7 +59,7 @@ int main()
     while (1)
     {
         getKeyboardInput();
-        if (run == 1 && pause == 0 && keyPress != -32) // keyPress != -32 is important here because arrow keys also returns this value
+        if (run == 1 && pause == 0 && keyPress != -32) // Arrow keys return the value -32 before their individual values thus delaying the input
         {
             userInput();
             food();
@@ -106,13 +106,16 @@ void getKeyboardInput()
 // Start / restart the game
 void initialization()
 {
+    // Start in the middle
     pCoordX = SIZE % 2 == 0 ? SIZE + 1: SIZE;
     pCoordY = SIZE / 2 + 2;
 
+    // Initialize the tailCoords array elements to SIZE + 2
     for (size_t i = 0; i < SIZE * SIZE; i++)
         for (size_t j = 0; j < 2; j++)
             tailCoords[i][j] = SIZE + 2;
 
+    // Write head coordinates to the (score - 1)th array element
     for (size_t i = 0; i < START_LENGTH; i++)
     {
         tailCoords[i][0] = pCoordY;
@@ -134,14 +137,15 @@ void initialization()
 // Process keyboard input
 void userInput()
 {
-    if (!(keyPress == UP || keyPress == DOWN || keyPress == LEFT || keyPress == RIGHT || keyPress == EXIT))
+    // Use previous keyPress value if pressed key is not one of those
+    if (!(keyPress == UP || keyPress == DOWN || keyPress == LEFT || keyPress == RIGHT))
         keyPress = prevKeyPress;
 
     setColor(I_GREEN);
 
     switch (keyPress)
     {
-    case UP:
+    case UP: // Go up
         if (pCoordY <= 1)
         {
             win = 0;
@@ -151,7 +155,7 @@ void userInput()
         gotoxy(pCoordX, --pCoordY, 'O');
         break;
 
-    case DOWN:
+    case DOWN: // Go down
         if (pCoordY >= SIZE)
         {
             win = 0;
@@ -160,8 +164,8 @@ void userInput()
         }
         gotoxy(pCoordX, ++pCoordY, 'O');
         break;
-
-    case LEFT:
+        
+    case LEFT: // Go left
         if (pCoordX <= 1)
         {
             win = 0;
@@ -172,7 +176,7 @@ void userInput()
         gotoxy(pCoordX, pCoordY, 'O');
         break;
 
-    case RIGHT:
+    case RIGHT: // Go right
         if (pCoordX >= SIZE * 2)
         {
             win = 0;
@@ -187,13 +191,15 @@ void userInput()
     prevKeyPress = keyPress;
 }
 
-// Add food on random places, control if user has eaten the food and adjust score
+// Spawn food on random places, control if user has eaten the food and adjust score
 void food()
 {
+    // Spawn new food if no food is present
     if (eaten == 1)
     {
         int check = 0;
 
+        // Check if food spawn location collides with the snake and find a new location if it does
         while (check == 0)
         {
             check = 1;
@@ -211,6 +217,7 @@ void food()
     setColor(I_RED);
     gotoxy(fCoordX, fCoordY, '*');
     
+    // Things to do when the food is eaten
     if (pCoordX == fCoordX && pCoordY == fCoordY)
     {
         setColor(I_GREEN);
@@ -232,6 +239,7 @@ void tail()
         tailCoords[i][1] = tailCoords[i + 1][1];
     }
 
+    // Write head coordinates to the (score - 1)th array element
     tailCoords[score > 0 ? score - 1 : 0][0] = pCoordY;
     tailCoords[score > 0 ? score - 1 : 0][1] = pCoordX;
 

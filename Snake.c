@@ -59,7 +59,7 @@ int main()
     while (1)
     {
         getKeyboardInput();
-        if (run == 1 && pause == 0 && keyPress != -32) // Arrow keys return the value -32 before their individual values thus delaying the input
+        if (run == 1 && pause == 0 && keyPress != -32) // Arrow keys return the value -32 before their individual values thus delaying the input, this eliminates the issue
         {
             userInput();
             food();

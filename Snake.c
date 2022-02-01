@@ -1,10 +1,14 @@
 // Snake game by Onat Bulut 2022
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdio.h>
 #include <conio.h>
 #include <windows.h>
+
+#define I_RED 0x000C // FOREGROUND_RED | FOREGROUND_INTENSITY
+#define I_GREEN 0x000A // FOREGROUND_GREEN | FOREGROUND_INTENSITY
+#define WHITE 0x0007 // FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE
 
 #define UP 72
 #define DOWN 80
@@ -15,18 +19,16 @@
 #define PAUSE 112
 
 #define SPEED 7 // Determines how fast the snake moves (steps per second)
-#define SIZE 10 // Map size in height and width, should be bigger than 5
-#define START_LENGTH 3 // Length of the snake at start, should be bigger than 1
+#define START_LENGTH 3 // Length of the snake at start
 
-#define I_RED 0x000C // FOREGROUND_RED | FOREGROUND_INTENSITY
-#define I_GREEN 0x000A // FOREGROUND_GREEN | FOREGROUND_INTENSITY
-#define WHITE 0x0007 // FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE
+short int mapSize = 10; // Map size in height and width
 
-int tailCoords[SIZE * SIZE][2] = { 0 };
-char keyPress, prevKeyPress = 0;
-int eaten = 1, win = 0, run = 0, pause = 0;
 int pCoordX, pCoordY, fCoordX, fCoordY;
-unsigned int score = START_LENGTH, highestScore = 0, tick = 0;
+char keyPress, prevKeyPress = 0;
+char eaten = 1, win = 0, run = 0, pause = 0, tick = 0;
+unsigned int score = 0, highestScore = 0;
+
+COORD *tailCoords; // COORD struct array for tail coordinates
 
 // Set cursor position and print a character
 void gotoxy(int x, int y, char character)
@@ -75,11 +77,23 @@ void preRun()
 {
     srand(time(NULL));
 
-    if (SIZE <= 5)
+    while (1)
     {
-        puts("Map size should be bigger than 5!");
-        exit(0);
+        printf("Enter a map size (5-50): ");
+        scanf_s("%hi", &mapSize);
+        system("cls");
+
+        if (mapSize <= 5 || mapSize > 50)
+        {
+            
+            puts("Map size should be between 5 and 50!");
+            continue;
+        }
+
+        break;
     }
+    
+    printf("Map size has been selected as %dx%d!\n", mapSize, mapSize);
 
     if (START_LENGTH <= 1)
     {
@@ -106,20 +120,26 @@ void getKeyboardInput()
 // Start / restart the game
 void initialization()
 {
+    // Deallocate memory when the user restarts while the game is running
+    if (run == 1)
+        free(tailCoords);
+
+    // Allocate memory for tailCoords COORD struct array
+    if ((tailCoords = malloc((START_LENGTH + 1) * sizeof(COORD))) == NULL)
+    {
+        puts("Not enough memory!");
+        exit(1);
+    }
+
     // Start in the middle
-    pCoordX = SIZE % 2 == 0 ? SIZE + 1: SIZE;
-    pCoordY = SIZE / 2 + 2;
+    pCoordX = mapSize % 2 == 0 ? mapSize + 1: mapSize;
+    pCoordY = mapSize / 2 + 2;      
 
-    // Initialize the tailCoords array elements to SIZE + 2
-    for (size_t i = 0; i < SIZE * SIZE; i++)
-        for (size_t j = 0; j < 2; j++)
-            tailCoords[i][j] = SIZE + 2;
-
-    // Write head coordinates to the (score - 1)th array element
+    // Write head coordinates to all tailCoords COORD struct array elements
     for (size_t i = 0; i < START_LENGTH; i++)
     {
-        tailCoords[i][0] = pCoordY;
-        tailCoords[i][1] = pCoordX;
+        tailCoords[i].Y = pCoordY;
+        tailCoords[i].X = pCoordX;
     }
 
     system("cls");
@@ -146,43 +166,23 @@ void userInput()
     switch (keyPress)
     {
     case UP: // Go up
-        if (pCoordY <= 1)
-        {
-            win = 0;
-            highestScore = score > highestScore ? score : highestScore;
-            break;
-        }
+        if (pCoordY <= 1) break;
         gotoxy(pCoordX, --pCoordY, 'O');
         break;
 
     case DOWN: // Go down
-        if (pCoordY >= SIZE)
-        {
-            win = 0;
-            highestScore = score > highestScore ? score : highestScore;
-            break;
-        }
+        if (pCoordY >= mapSize) break;
         gotoxy(pCoordX, ++pCoordY, 'O');
         break;
         
     case LEFT: // Go left
-        if (pCoordX <= 1)
-        {
-            win = 0;
-            highestScore = score > highestScore ? score : highestScore;
-            break;
-        }
+        if (pCoordX <= 1) break;
         pCoordX -= 2;
         gotoxy(pCoordX, pCoordY, 'O');
         break;
 
     case RIGHT: // Go right
-        if (pCoordX >= SIZE * 2)
-        {
-            win = 0;
-            highestScore = score > highestScore ? score : highestScore;
-            break;
-        }
+        if (pCoordX >= mapSize * 2) break;
         pCoordX += 2;
         gotoxy(pCoordX, pCoordY, 'O');
         break;
@@ -197,17 +197,17 @@ void food()
     // Spawn new food if no food is present
     if (eaten == 1)
     {
-        int check = 0;
+        char check = 0;
 
         // Check if food spawn location collides with the snake and find a new location if it does
         while (check == 0)
         {
             check = 1;
-            fCoordX = rand() % SIZE * 2 + 1;
-            fCoordY = rand() % SIZE + 1;
+            fCoordX = rand() % mapSize * 2 + 1;
+            fCoordY = rand() % mapSize + 1;
 
             for (size_t i = 0; i < score; i++)
-                if (fCoordX == tailCoords[i][1] && fCoordY == tailCoords[i][0])
+                if (fCoordX == tailCoords[i].X && fCoordY == tailCoords[i].Y)
                     check = 0;
         }
         
@@ -223,41 +223,50 @@ void food()
         setColor(I_GREEN);
         gotoxy(fCoordX, fCoordY, 'O');
         eaten = 1;
-        score++;
+
+        // Increment score by 1 and allocate more memory to tailCoords COORD struct array
+        if ((tailCoords = realloc(tailCoords, (++score + 1) * sizeof(COORD))) == NULL)
+        {
+            system("cls");
+            puts("Not enough memory!");
+            exit(1);
+        }
     }
 }
 
 // Adjust tail length and detect collision with tail
 void tail()
 {
-    gotoxy(tailCoords[0][1], tailCoords[0][0], ' ');
+    gotoxy(tailCoords[0].X, tailCoords[0].Y, ' ');
 
     // Move tail coordinates to the previous array element on every move
     for (size_t i = 0; i < score; i++)
     {
-        tailCoords[i][0] = tailCoords[i + 1][0];
-        tailCoords[i][1] = tailCoords[i + 1][1];
+        tailCoords[i].X = tailCoords[i + 1].X;
+        tailCoords[i].Y = tailCoords[i + 1].Y;
     }
 
     // Write head coordinates to the (score - 1)th array element
-    tailCoords[score > 0 ? score - 1 : 0][0] = pCoordY;
-    tailCoords[score > 0 ? score - 1 : 0][1] = pCoordX;
+    tailCoords[score > 0 ? score - 1 : 0].X = pCoordX;
+    tailCoords[score > 0 ? score - 1 : 0].Y = pCoordY;
 
     // Tail collision check
     for (size_t i = 0; i < score - 1; i++)
-        if (pCoordX == tailCoords[i][1] && pCoordY == tailCoords[i][0] && !(tick < START_LENGTH))
+        if (pCoordX == tailCoords[i].X && pCoordY == tailCoords[i].Y && !(tick < START_LENGTH))
         {
             win = 0;
             run = 0;
             highestScore = score > highestScore ? score : highestScore;
+            free(tailCoords);
         }
 
     // Win status check
-    if (score >= SIZE * SIZE)
+    if (score >= mapSize * mapSize)
     {
         win = 1;
         run = 0;
         highestScore = score > highestScore ? score : highestScore;
+        free(tailCoords);
     }
 }
 
@@ -271,32 +280,35 @@ void printMap()
     if (tick == 0)
     {
         printf("%s", "+");
-        for (size_t i = 0; i < SIZE * 2 + 1; i++)
+        for (size_t i = 0; i < mapSize * 2 + 1; i++)
             printf("%s", "-");
         puts("+");
 
-        for (size_t i = 0; i < SIZE; i++)
+        for (size_t i = 0; i < mapSize; i++)
         {
             printf("%s", "| ");
-            for (size_t j = 0; j < SIZE; j++)
+            for (size_t j = 0; j < mapSize; j++)
                 printf("%c ", ' ');
             puts("|");
         }
 
         printf("%s", "+");
-        for (size_t i = 0; i < SIZE * 2 + 1; i++)
+        for (size_t i = 0; i < mapSize * 2 + 1; i++)
             printf("%s", "-");
         puts("+");
     }
 
-    gotoxy(SIZE * 2 + 4, 1, '\0'); puts("Press Spacebar to restart");
-    gotoxy(SIZE * 2 + 4, 2, '\0'); puts("Press P to pause");
-    gotoxy(SIZE * 2 + 4, 3, '\0'); puts("Arrow keys to move");
-    gotoxy(SIZE * 2 + 4, 4, '\0'); printf("Length: %-5d Size: %dx%d\n", score, SIZE, SIZE);
-    gotoxy(SIZE * 2 + 4, 5, '\0'); if (highestScore > START_LENGTH) printf("Highest Length: %-5d\n", highestScore);
-    gotoxy(SIZE * 2 + 4, 6, '\0'); if (win == 0 && run == 0) puts("YOU LOST!!"); else if (win == 1 && run == 0) puts("YOU WON!!");
+    gotoxy(mapSize * 2 + 4, 1, '\0'); puts("Press Spacebar to restart");
+    gotoxy(mapSize * 2 + 4, 2, '\0'); puts("Press P to pause");
+    gotoxy(mapSize * 2 + 4, 3, '\0'); puts("Arrow keys to move");
+    gotoxy(mapSize * 2 + 4, 4, '\0'); printf("Length: %-5d Size: %dx%d\n", score, mapSize, mapSize);
+    gotoxy(mapSize * 2 + 4, 5, '\0'); if (highestScore > START_LENGTH) printf("Highest Length: %-5d\n", highestScore);
+    gotoxy(mapSize * 2 + 4, 6, '\0'); if (win == 0 && run == 0) puts("YOU LOST!!"); else if (win == 1 && run == 0) puts("YOU WON!!");
 
-    gotoxy(0, SIZE + 2, '\0');
+    gotoxy(0, mapSize + 2, '\0');
 
-    tick++;
+    if (tick <= START_LENGTH)
+    {
+        tick++;
+    }
 }

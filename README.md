@@ -7,3 +7,5 @@ How to play:
 - ESC to quit
 
 Collect * to increase your score and snake length. Fill the screen to win.
+
+![snake](https://github.com/OnatBulut/Snake/assets/96723086/b98ae435-fb4e-4145-8efa-1e0ca5483ece)
